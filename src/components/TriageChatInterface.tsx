@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Mic, MicOff, Maximize2, Minimize2 } from 'lucide-react';
+import { Send, Mic, MicOff, Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SeverityMeter from '@/components/SeverityMeter';
 import CulturalContextBadge from '@/components/CulturalContextBadge';
+import { getGeminiResponse, type Severity } from '@/lib/geminiApi';
 
 interface Message {
   id: string;
@@ -12,6 +13,7 @@ interface Message {
   translation?: string;
   idioms?: string[];
   timestamp: Date;
+  error?: boolean;
 }
 
 const quickChips: Record<string, string[]> = {
@@ -39,6 +41,7 @@ const TriageChatInterface = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [severity, setSeverity] = useState<Severity>('low');
+  const [apiError, setApiError] = useState(false);
   const messagesEnd = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,8 +81,9 @@ const TriageChatInterface = () => {
     return { text: 'Thank you for sharing. I\'m here to listen and help. Could you tell me more about how you\'ve been feeling lately?', severity: 'low' };
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!input.trim()) return;
+    
     const idioms = detectIdioms(input);
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -91,10 +95,19 @@ const TriageChatInterface = () => {
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
+    setApiError(false);
 
-    setTimeout(() => {
-      const response = getAIResponse(input);
+    try {
+      // Prepare conversation history for Gemini
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        text: msg.text,
+      }));
+
+      // Get response from Gemini API
+      const response = await getGeminiResponse(input, conversationHistory);
       setSeverity(response.severity);
+
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
@@ -102,15 +115,39 @@ const TriageChatInterface = () => {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, aiMsg]);
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      setApiError(true);
+      
+      // Fallback to basic response
+      const fallbackResponse = getAIResponse(input);
+      setSeverity(fallbackResponse.severity);
+      
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        text: fallbackResponse.text,
+        timestamp: new Date(),
+        error: true,
+      };
+      setMessages(prev => [...prev, aiMsg]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
-  };
+    }
 
   return (
     <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-full'}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
-        <h2 className="font-display text-xl font-semibold text-foreground">{t('sidebar.triage')}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-display text-xl font-semibold text-foreground">{t('sidebar.triage')}</h2>
+          {apiError && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900 rounded-md">
+              <AlertCircle className="w-4 h-4 text-yellow-700 dark:text-yellow-200" />
+              <span className="text-xs text-yellow-700 dark:text-yellow-200">Using fallback responses</span>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <SeverityMeter severity={severity} />
           <button
@@ -135,7 +172,7 @@ const TriageChatInterface = () => {
               <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                 msg.role === 'user'
                   ? 'bg-primary text-primary-foreground rounded-br-md'
-                  : 'glass-card text-foreground rounded-bl-md'
+                  : `${msg.error ? 'border border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' : 'glass-card'} text-foreground rounded-bl-md`
               }`}>
                 <p className="text-sm leading-relaxed">{msg.text}</p>
                 {msg.idioms && msg.idioms.length > 0 && (
