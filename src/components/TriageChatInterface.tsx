@@ -1,0 +1,219 @@
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, Mic, MicOff, Maximize2, Minimize2 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import SeverityMeter from '@/components/SeverityMeter';
+import CulturalContextBadge from '@/components/CulturalContextBadge';
+
+interface Message {
+  id: string;
+  role: 'user' | 'ai';
+  text: string;
+  translation?: string;
+  idioms?: string[];
+  timestamp: Date;
+}
+
+const quickChips: Record<string, string[]> = {
+  en: ['I feel anxious', 'I can\'t sleep', 'Family problems', 'Work stress'],
+  te: ['ఆందోళనగా ఉంది', 'నిద్ర రావడం లేదు', 'కుటుంబ సమస్యలు', 'పని ఒత్తిడి'],
+  hi: ['मुझे चिंता हो रही है', 'नींद नहीं आती', 'परिवार की समस्या', 'काम का तनाव'],
+};
+
+const idiomMap: Record<string, string> = {
+  'heart feels heavy': '💔 Heart feels heavy',
+  'mind is crowded': '🧠 Mind is crowded',
+  'గుండె బరువుగా': '💔 Heart feels heavy',
+  'మనసు నిండిపోయింది': '🧠 Mind is crowded',
+  'दिल भारी है': '💔 Heart feels heavy',
+  'दिमाग भरा हुआ': '🧠 Mind is crowded',
+};
+
+export type Severity = 'low' | 'medium' | 'high' | 'critical';
+
+const TriageChatInterface = () => {
+  const { t, language } = useLanguage();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [severity, setSeverity] = useState<Severity>('low');
+  const messagesEnd = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([{
+        id: '1',
+        role: 'ai',
+        text: t('chat.welcome'),
+        timestamp: new Date(),
+      }]);
+    }
+  }, [language]);
+
+  useEffect(() => {
+    messagesEnd.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
+
+  const detectIdioms = (text: string): string[] => {
+    const found: string[] = [];
+    Object.entries(idiomMap).forEach(([idiom, label]) => {
+      if (text.toLowerCase().includes(idiom.toLowerCase())) found.push(label);
+    });
+    return found;
+  };
+
+  const getAIResponse = (userText: string): { text: string; severity: Severity } => {
+    const lower = userText.toLowerCase();
+    if (lower.includes('suicid') || lower.includes('die') || lower.includes('end my life')) {
+      return { text: 'I hear you, and I want you to know you\'re not alone. Please reach out to a crisis helpline immediately. Your life matters. Would you like me to connect you with emergency services?', severity: 'critical' };
+    }
+    if (lower.includes('anxious') || lower.includes('ఆందోళన') || lower.includes('चिंता') || lower.includes('can\'t sleep') || lower.includes('నిద్ర') || lower.includes('नींद')) {
+      return { text: 'I understand you\'re going through a difficult time. Anxiety and sleep issues are common, and there are effective ways to manage them. Can you tell me more about when these feelings started?', severity: 'medium' };
+    }
+    if (lower.includes('stress') || lower.includes('ఒత్తిడి') || lower.includes('तनाव')) {
+      return { text: 'Stress can feel overwhelming, especially with work and family responsibilities. Let\'s talk about what\'s causing the most pressure. Are there specific situations that trigger this stress?', severity: 'medium' };
+    }
+    return { text: 'Thank you for sharing. I\'m here to listen and help. Could you tell me more about how you\'ve been feeling lately?', severity: 'low' };
+  };
+
+  const sendMessage = () => {
+    if (!input.trim()) return;
+    const idioms = detectIdioms(input);
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      text: input,
+      idioms: idioms.length > 0 ? idioms : undefined,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setIsTyping(true);
+
+    setTimeout(() => {
+      const response = getAIResponse(input);
+      setSeverity(response.severity);
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        text: response.text,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, aiMsg]);
+      setIsTyping(false);
+    }, 1500);
+  };
+
+  return (
+    <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-full'}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <h2 className="font-display text-xl font-semibold text-foreground">{t('sidebar.triage')}</h2>
+        <div className="flex items-center gap-3">
+          <SeverityMeter severity={severity} />
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+          >
+            {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <AnimatePresence>
+          {messages.map((msg) => (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                msg.role === 'user'
+                  ? 'bg-primary text-primary-foreground rounded-br-md'
+                  : 'glass-card text-foreground rounded-bl-md'
+              }`}>
+                <p className="text-sm leading-relaxed">{msg.text}</p>
+                {msg.idioms && msg.idioms.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {msg.idioms.map((idiom, i) => (
+                      <CulturalContextBadge key={i} label={idiom} />
+                    ))}
+                  </div>
+                )}
+                <span className="text-xs opacity-60 mt-1 block">
+                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="glass-card px-4 py-3 rounded-2xl rounded-bl-md">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 rounded-full bg-muted-foreground typing-dot" />
+                <div className="w-2 h-2 rounded-full bg-muted-foreground typing-dot" />
+                <div className="w-2 h-2 rounded-full bg-muted-foreground typing-dot" />
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEnd} />
+      </div>
+
+      {/* Quick chips */}
+      <div className="px-4 pb-2 flex gap-2 overflow-x-auto">
+        {quickChips[language]?.map((chip) => (
+          <button
+            key={chip}
+            onClick={() => setInput(chip)}
+            className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            {chip}
+          </button>
+        ))}
+      </div>
+
+      {/* Input */}
+      <div className="p-4 border-t border-border">
+        <div className="flex items-center gap-2 glass-card p-2 rounded-xl">
+          <button
+            onClick={() => setIsRecording(!isRecording)}
+            className={`p-2 rounded-lg transition-colors ${isRecording ? 'bg-destructive text-destructive-foreground' : 'hover:bg-muted text-muted-foreground'}`}
+          >
+            {isRecording ? (
+              <div className="relative">
+                <MicOff className="w-5 h-5" />
+                <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive pulse-ring" />
+              </div>
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
+          </button>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            placeholder={t('chat.placeholder')}
+            className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm"
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim()}
+            className="p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 transition-opacity"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TriageChatInterface;
