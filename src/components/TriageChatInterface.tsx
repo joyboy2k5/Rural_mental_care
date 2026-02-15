@@ -40,6 +40,7 @@ const TriageChatInterface = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [compactInput, setCompactInput] = useState('');
   const [severity, setSeverity] = useState<Severity>('low');
   const [apiError, setApiError] = useState(false);
   const messagesEnd = useRef<HTMLDivElement>(null);
@@ -81,19 +82,22 @@ const TriageChatInterface = () => {
     return { text: 'Thank you for sharing. I\'m here to listen and help. Could you tell me more about how you\'ve been feeling lately?', severity: 'low' };
   };
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-    
-    const idioms = detectIdioms(input);
+  const sendMessage = async (overrideText?: string) => {
+    const messageText = overrideText !== undefined ? overrideText : input;
+    if (!messageText.trim()) return;
+
+    const idioms = detectIdioms(messageText);
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
-      text: input,
+      text: messageText,
       idioms: idioms.length > 0 ? idioms : undefined,
       timestamp: new Date(),
     };
+
     setMessages(prev => [...prev, userMsg]);
-    setInput('');
+    if (overrideText === undefined) setInput('');
+    else setCompactInput('');
     setIsTyping(true);
     setApiError(false);
 
@@ -105,7 +109,7 @@ const TriageChatInterface = () => {
       }));
 
       // Get response from Gemini API
-      const response = await getGeminiResponse(input, conversationHistory);
+      const response = await getGeminiResponse(messageText, conversationHistory);
       setSeverity(response.severity);
 
       const aiMsg: Message = {
@@ -118,11 +122,11 @@ const TriageChatInterface = () => {
     } catch (error) {
       console.error('Error getting AI response:', error);
       setApiError(true);
-      
+
       // Fallback to basic response
-      const fallbackResponse = getAIResponse(input);
+      const fallbackResponse = getAIResponse(messageText);
       setSeverity(fallbackResponse.severity);
-      
+
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
@@ -134,6 +138,7 @@ const TriageChatInterface = () => {
     } finally {
       setIsTyping(false);
     }
+  };
 
   return (
     <div className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-full'}`}>
@@ -233,12 +238,22 @@ const TriageChatInterface = () => {
               <Mic className="w-5 h-5" />
             )}
           </button>
-          <input
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder={t('chat.placeholder')}
-            className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            placeholder={
+              t('chat.placeholder') ||
+              "Describe how you're feeling — e.g., \"I can't sleep and feel hopeless.\" (Shift+Enter for new line)"
+            }
+            aria-label={t('chat.inputAria') || 'Type your message here'}
+            rows={2}
+            className="flex-1 resize-none bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm"
           />
           <button
             onClick={sendMessage}
@@ -246,6 +261,30 @@ const TriageChatInterface = () => {
             className="p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 transition-opacity"
           >
             <Send className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+      {/* Floating quick input (bottom-right) */}
+      <div className="fixed right-6 bottom-6 z-40 flex flex-col items-end gap-2">
+        <div className="w-80 bg-background glass-card p-2 rounded-lg shadow-md flex items-center gap-2">
+          <input
+            value={compactInput}
+            onChange={(e) => setCompactInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(compactInput);
+              }
+            }}
+            placeholder={t('chat.quickPlaceholder') || 'Quick message...'}
+            className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm"
+          />
+          <button
+            onClick={() => sendMessage(compactInput)}
+            disabled={!compactInput.trim()}
+            className="p-2 rounded bg-primary text-primary-foreground disabled:opacity-40"
+          >
+            <Send className="w-4 h-4" />
           </button>
         </div>
       </div>
