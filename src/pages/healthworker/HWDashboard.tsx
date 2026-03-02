@@ -3,10 +3,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Users, AlertTriangle, Clock, TrendingUp } from 'lucide-react';
 
 const stats = [
-  { icon: Users, label: 'Active Patients', value: '24', color: 'text-primary' },
-  { icon: AlertTriangle, label: 'Critical Cases', value: '3', color: 'text-destructive' },
-  { icon: Clock, label: 'Avg Response Time', value: '4.2 min', color: 'text-soft-gold' },
-  { icon: TrendingUp, label: 'Resolved Today', value: '18', color: 'text-healing-green' },
+  { icon: Users, label: 'Active Patients', tKey: 'hw.activePatients', value: '24', color: 'text-primary' },
+  { icon: AlertTriangle, label: 'Critical Cases', tKey: 'hw.criticalCases', value: '3', color: 'text-destructive' },
+  { icon: Clock, label: 'Avg Response Time', tKey: 'hw.avgResponse', value: '4.2 min', color: 'text-soft-gold' },
+  { icon: TrendingUp, label: 'Resolved Today', tKey: 'hw.resolvedToday', value: '18', color: 'text-healing-green' },
 ];
 
 const HWDashboard = () => {
@@ -27,14 +27,14 @@ const HWDashboard = () => {
           >
             <s.icon className={`w-6 h-6 ${s.color} mb-2`} />
             <p className="text-2xl font-bold text-foreground">{s.value}</p>
-            <p className="text-xs text-muted-foreground">{s.label}</p>
+            <p className="text-xs text-muted-foreground">{t(s.tKey)}</p>
           </motion.div>
         ))}
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-5">
-          <h2 className="font-display text-lg font-semibold text-foreground mb-4">Recent Triage Activity</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground mb-4">{t('hw.recentActivity')}</h2>
           <div className="space-y-3">
             {['Ramesh K. - High severity (farming stress)', 'Lakshmi D. - Medium (family pressure)', 'Suresh M. - Critical (suicidal ideation)'].map((item, i) => (
               <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
@@ -46,7 +46,7 @@ const HWDashboard = () => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card p-5">
-          <h2 className="font-display text-lg font-semibold text-foreground mb-4">Common Themes Today</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground mb-4">{t('hw.commonThemes')}</h2>
           <div className="flex flex-wrap gap-2">
             {['Farming Stress', 'Sleep Issues', 'Family Pressure', 'Financial Worry', 'Loneliness', 'Migration'].map((theme) => (
               <span key={theme} className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary">{theme}</span>

@@ -47,9 +47,8 @@ const HWQueue = () => {
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                filter === s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'
-              }`}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${filter === s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'
+                }`}
             >
               {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
@@ -80,11 +79,11 @@ const HWQueue = () => {
                 {/* Original + translation */}
                 <div className="grid md:grid-cols-2 gap-2 mb-3">
                   <div className="p-2 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">Original ({item.language})</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('hw.originalText')} ({item.language})</p>
                     <p className="text-sm text-foreground">{item.originalText}</p>
                   </div>
                   <div className="p-2 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">English Translation</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('hw.translation')}</p>
                     <p className="text-sm text-foreground">{item.translation}</p>
                   </div>
                 </div>
@@ -96,7 +95,7 @@ const HWQueue = () => {
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  <span className="font-medium">AI Recommendation:</span> {item.aiRecommendation} • {item.time}
+                  <span className="font-medium">{t('hw.aiRecommendation')}:</span> {item.aiRecommendation} • {item.time}
                 </p>
               </div>
 
@@ -109,7 +108,7 @@ const HWQueue = () => {
                 </button>
                 {item.severity === 'critical' && (
                   <button className="flex items-center gap-1 px-3 py-2 rounded-lg bg-destructive/20 text-destructive text-xs font-medium hover:bg-destructive/30 transition-colors">
-                    <AlertTriangle className="w-3.5 h-3.5" /> Emergency
+                    <AlertTriangle className="w-3.5 h-3.5" /> {t('hw.emergency')}
                   </button>
                 )}
               </div>
