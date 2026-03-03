@@ -9,6 +9,56 @@ interface LanguageContextType {
 }
 
 const translations: Record<string, Record<Language, string>> = {
+  // Auth & Greetings
+  'greeting.morning': { en: 'Good morning', te: 'శుభోదయం', hi: 'सुप्रभात' },
+  'greeting.afternoon': { en: 'Good afternoon', te: 'శుభ మధ్యాహ్నం', hi: 'शुभ दोपहर' },
+  'greeting.evening': { en: 'Good evening', te: 'శుభ సాయంత్రం', hi: 'शुभ संध्या' },
+  'auth.tab.signin': { en: 'Sign In', te: 'లాగిన్ చేయండి', hi: 'लॉगिन करें' },
+  'auth.tab.signup': { en: 'Sign Up', te: 'నమోదు చేసుకోండి', hi: 'साइन अप करें' },
+  'auth.name': { en: 'Full Name', te: 'పూర్తి పేరు', hi: 'पूरा नाम' },
+  'auth.name.placeholder': { en: 'Enter your full name', te: 'మీ పూర్తి పేరును నమోదు చేయండి', hi: 'अपना पूरा नाम दर्ज करें' },
+  'auth.password': { en: 'Password', te: 'పాస్వర్డ్', hi: 'पासवर्ड' },
+  'auth.passwordConfirm': { en: 'Confirm Password', te: 'పాస్వర్డ్ నిర్ధారించండి', hi: 'पासवर्ड की पुष्टि करें' },
+  'auth.language': { en: 'Language Preference', te: 'భాషా ప్రాధాన్యత', hi: 'भाषा प्राथमिकता' },
+  'auth.age': { en: 'Age', te: 'వయస్సు', hi: 'आयु' },
+  'auth.gender.prompt': { en: 'Select your gender', te: 'మీ లింగాన్ని ఎంచుకోండి', hi: 'अपना लिंग चुनें' },
+  'auth.gender.male': { en: 'Male', te: 'పురుషుడు', hi: 'पुरुष' },
+  'auth.gender.female': { en: 'Female', te: 'మహిళ', hi: 'महिला' },
+  'auth.gender.other': { en: 'Other', te: 'ఇతర', hi: 'अन्य' },
+  'auth.district': { en: 'District', te: 'జిల్లా', hi: 'जिला' },
+  'auth.district.select': { en: 'Select District', te: 'జిల్లా ఎంచుకోండి', hi: 'जिला चुनें' },
+  'auth.village': { en: 'Village / Mandal', te: 'గ్రామం / మండలం', hi: 'गाँव / मंडल' },
+  'auth.village.select': { en: 'Select Village', te: 'గ్రామం ఎంచుకోండి', hi: 'गाँव चुनें' },
+  'auth.btn.signin': { en: 'Sign In', te: 'లాగిన్ చేయండి', hi: 'लॉगिन करें' },
+  'auth.btn.next': { en: 'Next →', te: 'తదుపరి →', hi: 'अगला →' },
+  'auth.btn.back': { en: '← Back', te: '← వెనుకకు', hi: '← वापस' },
+  'auth.btn.create': { en: 'Create Account', te: 'ఖాతా తయారు చేయండి', hi: 'खाता बनाएं' },
+  'auth.link.newUser': { en: 'New user? Sign Up →', te: 'కొత్త వినియోగదారునా? నమోదు చేసుకోండి →', hi: 'नए उपयोगकर्ता? साइन अप करें →' },
+  'auth.link.guest': { en: 'Continue as Guest →', te: 'అతిథిగా కొనసాగించండి →', hi: 'अतिथि के रूप में जारी रखें →' },
+  'auth.step1.title': { en: 'Personal Details', te: 'వ్యక్తిగత వివరాలు', hi: 'व्यक्तिगत जानकारी' },
+  'auth.step2.title': { en: 'About You', te: 'మీ గురించి', hi: 'आपके बारे में' },
+  'auth.step3.title': { en: 'Your Location & Password', te: 'మీ స్థానం & పాస్వర్డ్', hi: 'आपका स्थान और पासवर्ड' },
+  'auth.error.empty': { en: 'Please fill in all fields.', te: 'దయచేసి అన్ని వివరాలను పూరించండి.', hi: 'कृपया सभी फ़ील्ड भरें।' },
+  'auth.error.invalid': { en: 'Invalid name or password. Please try again.', te: 'పేరు లేదా పాస్వర్డ్ తప్పు. మళ్లీ ప్రయత్నించండి.', hi: 'गलत नाम या पासवर्ड। फिर से कोशिश करें।' },
+  'auth.error.nameLength': { en: 'Name must be at least 2 characters.', te: 'పేరు కనీసం 2 అక్షరాలు ఉండాలి.', hi: 'नाम कम से कम 2 अक्षरों का होना चाहिए।' },
+  'auth.error.ageRange': { en: 'Age must be between 5 and 110.', te: 'వయస్సు 5 మరియు 110 మధ్య ఉండాలి.', hi: 'आयु 5 और 110 के बीच होनी चाहिए।' },
+  'auth.error.genderSelect': { en: 'Please select a gender.', te: 'దయచేసి లింగాన్ని ఎంచుకోండి.', hi: 'कृपया लिंग चुनें।' },
+  'auth.error.locationSelect': { en: 'Please select your district and village.', te: 'దయచేసి మీ జిల్లా మరియు గ్రామాన్ని ఎంచుకోండి.', hi: 'कृपया अपना जिला और गाँव चुनें।' },
+  'auth.error.passwordLength': { en: 'Password must be at least 6 characters.', te: 'పాస్వర్డ్ కనీసం 6 అక్షరాలు ఉండాలి.', hi: 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।' },
+  'auth.error.passwordMatch': { en: 'Passwords do not match.', te: 'పాస్వర్డ్లు సరిపోలడం లేదు.', hi: 'पासवर्ड मेल नहीं खाते हैं।' },
+
+  'common.logout': { en: 'Logout', te: 'లాగ్అవుట్', hi: 'लॉग आउट' },
+
+  // HW Auth
+  'hw.auth.portal': { en: 'Healthcare Worker Portal', te: 'ఆరోగ్య కార్యకర్త పోర్టల్', hi: 'स्वास्थ्य कार्यकर्ता पोर्टल' },
+  'hw.auth.empId': { en: 'Employee ID', te: 'ఉద్యోగి ID', hi: 'कर्मचारी ID' },
+  'hw.auth.empId.placeholder': { en: 'Enter your Employee ID', te: 'మీ ఉద్యోగి ID నమోదు చేయండి', hi: 'अपना कर्मचारी ID दर्ज करें' },
+  'hw.auth.password.placeholder': { en: 'Enter your password', te: 'పాస్వర్డ్ నమోదు చేయండి', hi: 'पासवर्ड दर्ज करें' },
+  'hw.auth.btn.signin': { en: 'Sign In to Dashboard', te: 'డాష్బోర్డ్లోకి లాగిన్', hi: 'डैशबोर्ड में लॉगिन करें' },
+  'hw.auth.error.empty': { en: 'Please enter both Employee ID and password.', te: 'దయచేసి Employee ID మరియు పాస్వర్డ్ రెండూ నమోదు చేయండి.', hi: 'कृपया Employee ID और पासवर्ड दोनों दर्ज करें।' },
+  'hw.auth.backToHome': { en: '← Back to Home', te: '← వెనుకకు', hi: '← वापस जाएँ' },
+
+
   // Landing
   'welcome.title': {
     en: 'Your Mental Health Matters',
@@ -232,7 +282,28 @@ const translations: Record<string, Record<Language, string>> = {
   'hw.originalText': { en: 'Original', te: 'అసలు వచనం', hi: 'मूल पाठ' },
   'hw.translation': { en: 'English Translation', te: 'ఆంగ్ల అనువాదం', hi: 'अंग्रेज़ी अनुवाद' },
   'hw.aiRecommendation': { en: 'AI Recommendation', te: 'AI సిఫారసు', hi: 'AI की सलाह' },
+  'hw.translations': { en: 'Translations', te: 'అనువాదాలు', hi: 'अनुवाद' },
   'hw.emergency': { en: 'Emergency', te: 'అత్యవసరం', hi: 'आपातकाल' },
+
+  // HW Settings
+  'hw.settings.subtitle': { en: 'Customize your ManoVaidya healthworker experience', te: 'మీ మనోవైద్య ఆరోగ్య కార్యకర్త అనుభవాన్ని అనుకూలీకరించండి', hi: 'अपने मनोवैद्य स्वास्थ्य कार्यकर्ता अनुभव को अनुकूलित करें' },
+  'hw.settings.queuePrefs': { en: 'Queue & Triage Preferences', te: 'క్యూ & ట్రయాజ్ ప్రాధాన్యతలు', hi: 'कतार और ट्राइएज प्राथमिकताएं' },
+  'hw.settings.autoRefresh': { en: 'Auto-refresh Queue', te: 'క్యూ స్వయంచాలక తాజాకరణ', hi: 'स्वतः-ताज़ा कतार' },
+  'hw.settings.autoRefresh.desc': { en: 'Automatically refresh the triage queue every 30 seconds', te: 'ప్రతి 30 సెకన్లకు స్వయంచాలకంగా ట్రయాజ్ క్యూను నవీకరించండి', hi: 'हर 30 सेकंड में स्वचालित रूप से ट्राइएज कतार को ताज़ा करें' },
+  'hw.settings.soundAlert': { en: 'High-Risk Sound Alert', te: 'అధిక-ప్రమాద ధ్వని హెచ్చరిక', hi: 'उच्च जोखिम ध्वनि चेतावनी' },
+  'hw.settings.soundAlert.desc': { en: 'Play an audio alert when a critical severity patient enters the queue', te: 'క్లిష్టమైన తీవ్రత గల రోగి క్యూలోకి ప్రవేశించినప్పుడు ఆడియో హెచ్చరిక ప్లే చేయండి', hi: 'जब कोई गंभीर गंभीरता वाला मरीज कतार में प्रवेश करता है तो एक ऑडियो अलर्ट चलाएं' },
+  'hw.settings.defaultView': { en: 'Default Triage View', te: 'డిఫాల్ట్ ట్రయాజ్ వీక్షణ', hi: 'डिफ़ॉल्ट ट्राइएज दृश्य' },
+  'hw.settings.view.all': { en: 'All Patients', te: 'అందరూ రోగులు', hi: 'सभी मरीज' },
+  'hw.settings.view.critical': { en: 'Critical Only', te: 'క్లిష్టమైనవి మాత్రమే', hi: 'केवल गंभीर' },
+  'hw.settings.view.highCritical': { en: 'High & Critical', te: 'అధిక & క్లిష్టమైనవి', hi: 'उच्च और गंभीर' },
+  'hw.settings.displayPrefs': { en: 'Display Preferences', te: 'ప్రదర్శన ప్రాధాన్యతలు', hi: 'प्रदर्शन प्राथमिकताएं' },
+  'hw.settings.showLocation': { en: 'Show Patient Location', te: 'రోగి స్థానాన్ని చూపించు', hi: 'मरीज का स्थान दिखाएं' },
+  'hw.settings.showLocation.desc': { en: 'Display district and village in the queue cards', te: 'క్యూ కార్డులలో జిల్లా మరియు గ్రామాన్ని ప్రదర్శించు', hi: 'कतार कार्डों में जिला और गांव प्रदर्शित करें' },
+  'hw.settings.showConfidence': { en: 'Show AI Confidence Score', te: 'AI విశ్వాస స్కోరును చుపించు', hi: 'एआई आत्मविश्वास स्कोर दिखाएं' },
+  'hw.settings.showConfidence.desc': { en: 'Show the AI\'s confidence percentage alongside severity assessments', te: 'తీవ్రత అంచనాలతో పాటు AI విశ్వాస శాతాన్ని చూపించు', hi: 'गंभीरता आकलन के साथ एआई का आत्मविश्वास प्रतिशत दिखाएं' },
+  'hw.settings.compactCards': { en: 'Compact Queue Cards', te: 'కాంపాక్ట్ క్యూ కార్డ్‌లు', hi: 'कॉम्पैक्ट कतार कार्ड' },
+  'hw.settings.compactCards.desc': { en: 'Reduce card height to show more patients on screen', te: 'స్క్రీన్‌పై ఎక్కువ మంది రోగులను చూపించడానికి కార్డ్ ఎత్తును తగ్గించండి', hi: 'स्क्रीन पर अधिक मरीजों को दिखाने के लिए कार्ड की ऊंचाई कम करें' },
+  'hw.settings.resetHW': { en: 'Reset Healthworker Preferences', te: 'ఆరోగ్య కార్యకర్త ప్రాధాన్యతలను రీసెట్ చేయండి', hi: 'स्वास्थ्य कार्यकर्ता प्राथमिकताएं रीसेट करें' },
 
   // Chat quick chips
   'chat.chip.anxious': { en: "I feel anxious", te: "నాకు ఆందోళనగా ఉంది", hi: "मुझे घबराहट हो रही है" },

@@ -15,8 +15,8 @@ const item = {
 };
 
 const entryPoints = [
-  { key: 'nav.patient', icon: Heart, path: '/patient/triage', color: 'bg-primary' },
-  { key: 'nav.healthworker', icon: Stethoscope, path: '/healthworker/dashboard', color: 'bg-secondary' },
+  { key: 'nav.patient', icon: Heart, path: '/patient/auth', color: 'bg-primary' },
+  { key: 'nav.healthworker', icon: Stethoscope, path: '/healthworker/auth', color: 'bg-secondary' },
 ];
 
 const features = [

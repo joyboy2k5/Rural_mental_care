@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
 import EmergencySOS from '@/components/EmergencySOS';
+import { isPatientLoggedIn, getPatientProfile, clearPatientProfile } from '@/lib/patientAuth';
 import { Heart, MessageCircle, LayoutDashboard, FileText, Calendar, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const links = [
@@ -14,8 +15,14 @@ const links = [
 ];
 
 const PatientLayout = () => {
+  const isAuth = isPatientLoggedIn() || sessionStorage.getItem('manovaidya_guest_session') === 'true';
+  if (!isAuth) {
+    return <Navigate to="/patient/auth" replace />;
+  }
+
   const { t, language, setLanguage } = useLanguage();
   const navigate = useNavigate();
+  const profile = getPatientProfile();
   const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
 
   const toggleSidebar = () => {
@@ -24,11 +31,17 @@ const PatientLayout = () => {
     localStorage.setItem('sidebarCollapsed', String(newVal));
   };
 
+  const handleLogout = () => {
+    clearPatientProfile();
+    sessionStorage.removeItem('manovaidya_guest_session');
+    navigate('/patient/auth');
+  };
+
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar - hidden on mobile, shown as bottom nav */}
       <aside className={`hidden md:flex flex-col border-r border-border bg-card p-4 transition-all duration-300 ease-in-out relative ${isCollapsed ? 'w-16 items-center px-2' : 'w-64'}`}>
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} mb-8 w-full`}>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} w-full`}>
           <div className="flex items-center gap-2">
             <Heart className="w-6 h-6 text-primary flex-shrink-0" />
             {!isCollapsed && <span className="font-display text-lg font-bold text-foreground truncate">ManoVaidya</span>}
@@ -41,7 +54,19 @@ const PatientLayout = () => {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 w-full overflow-hidden">
+        {!isCollapsed && profile && (
+          <div className="flex items-center gap-3 p-3 mt-6 mb-2 rounded-xl bg-muted/30 border border-border">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              <span className="text-primary font-bold text-lg">{profile.name.charAt(0).toUpperCase()}</span>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="font-medium text-sm text-foreground truncate">{profile.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{profile.district}</p>
+            </div>
+          </div>
+        )}
+
+        <nav className={`flex-1 space-y-1 w-full overflow-hidden ${isCollapsed || !profile ? 'mt-8' : 'mt-4'}`}>
           {links.map((link) => (
             <NavLink
               key={link.to}
@@ -73,9 +98,9 @@ const PatientLayout = () => {
             </select>
           )}
           <button
-            onClick={() => navigate('/')}
+            onClick={handleLogout}
             title={isCollapsed ? t('common.logout') : undefined}
-            className={`flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-2 px-3 py-2'} w-full rounded-lg text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors`}
+            className={`flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-2 px-3 py-2'} w-full rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors`}
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {!isCollapsed && <span className="truncate">{t('common.logout')}</span>}

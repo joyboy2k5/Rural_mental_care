@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Clock, Calendar, Lightbulb, Phone, BookOpen, Video, MessageCircle } from 'lucide-react';
+import { getPatientProfile } from '@/lib/patientAuth';
 
 const healthTips: Record<string, string> = {
   en: 'Take a 10-minute walk in nature today. Fresh air and movement can help calm your mind.',
@@ -33,7 +34,11 @@ const resourceCategoryMap: Record<string, string | null> = {
 const PatientDashboard = () => {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const profile = getPatientProfile();
   const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
+
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
 
   useEffect(() => {
     const stored = localStorage.getItem('manovaidya_bookings');
@@ -47,9 +52,9 @@ const PatientDashboard = () => {
       <motion.h1
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="font-display text-2xl font-bold text-foreground"
+        className="font-display text-2xl font-bold text-foreground flex items-center gap-2"
       >
-        {t('sidebar.dashboard')}
+        {profile ? `${t(`greeting.${timeOfDay}`)}, ${profile.name.split(' ')[0]}!` : t('sidebar.dashboard')}
       </motion.h1>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

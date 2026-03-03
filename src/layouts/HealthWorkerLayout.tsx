@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { Stethoscope, LayoutDashboard, ListChecks, Users, BarChart3, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -22,6 +22,10 @@ const HealthWorkerLayout = () => {
     setIsCollapsed(newVal);
     localStorage.setItem('sidebarCollapsed', String(newVal));
   };
+
+  if (!sessionStorage.getItem('manovaidya_hw_session')) {
+    return <Navigate to="/healthworker/auth" replace />;
+  }
 
   return (
     <div className="flex h-screen bg-background">
@@ -68,7 +72,10 @@ const HealthWorkerLayout = () => {
               <option value="hi">🌐 हिंदी (Hindi)</option>
             </select>
           )}
-          <button onClick={() => navigate('/')} title={isCollapsed ? t('common.logout') : undefined} className={`flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-2 px-3 py-2'} w-full rounded-lg text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors`}>
+          <button onClick={() => {
+            sessionStorage.removeItem('manovaidya_hw_session');
+            navigate('/');
+          }} title={isCollapsed ? t('common.logout') : undefined} className={`flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-2 px-3 py-2'} w-full rounded-lg text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors`}>
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {!isCollapsed && <span className="truncate">{t('common.logout')}</span>}
           </button>
