@@ -6,7 +6,8 @@ import {
   Calendar as CalendarIcon, Clock, Video, Phone, MessageCircle,
   Star, User, Check, CheckCircle, ChevronLeft, ChevronRight, ArrowLeft
 } from 'lucide-react';
-
+import { addDoc, collection, Timestamp } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 type CounselorType = {
   id: string;
   name: string;
@@ -116,19 +117,37 @@ const PatientSessions = () => {
     return cells;
   };
 
-  const confirmBooking = () => {
-    const newBooking = {
+  const confirmBooking = async () => {
+  const user = auth.currentUser;
+
+  if (!user) {
+    alert("User not logged in");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "appointments"), {
+      patientId: user.uid,
+      patientEmail: user.email,
       counselorName: booking.counselor?.name,
+      counselorId: booking.counselor?.id,
       date: booking.date,
       time: booking.time,
       sessionType: booking.sessionType,
-      id: Math.random().toString(36).substr(2, 9)
-    };
-    const existing = JSON.parse(localStorage.getItem('manovaidya_bookings') || '[]');
-    localStorage.setItem('manovaidya_bookings', JSON.stringify([...existing, newBooking]));
-    setStep(4);
-  };
+      reason: booking.reason,
+      notes: booking.notes,
+      status: "booked",
+      severity: "Medium",
+      createdAt: Timestamp.now(),
+    });
 
+    setStep(4);
+
+  } catch (error) {
+    console.error("Error saving booking:", error);
+    alert("Something went wrong");
+  }
+};
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6 space-y-6 bg-background">
       {step < 4 && (

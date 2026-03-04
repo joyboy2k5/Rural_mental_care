@@ -1,8 +1,9 @@
 import { Language } from '@/contexts/LanguageContext';
 
 export interface PatientProfile {
-    id: string; // Date.now().toString()
+    id: string; // Date.now().toString() or Firebase UID
     name: string;
+    email: string; // Added email field here
     language: Language;
     age: number;
     gender: 'male' | 'female' | 'other';
