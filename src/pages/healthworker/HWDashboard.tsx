@@ -1,13 +1,32 @@
-import { motion } from 'framer-motion';
+import { useEffect } from 'react';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Users, AlertTriangle, Clock, TrendingUp } from 'lucide-react';
 
-const stats = [
-  { icon: Users, label: 'Active Patients', tKey: 'hw.activePatients', value: '24', color: 'text-primary' },
-  { icon: AlertTriangle, label: 'Critical Cases', tKey: 'hw.criticalCases', value: '3', color: 'text-destructive' },
-  { icon: Clock, label: 'Avg Response Time', tKey: 'hw.avgResponse', value: '4.2 min', color: 'text-soft-gold' },
-  { icon: TrendingUp, label: 'Resolved Today', tKey: 'hw.resolvedToday', value: '18', color: 'text-healing-green' },
+// 1. We change 'value' to 'target', 'decimals', and 'suffix' so the counter knows how to format the numbers
+const statsConfig = [
+  { icon: Users, label: 'Active Patients', tKey: 'hw.activePatients', target: 24, decimals: 0, suffix: '', color: 'text-primary' },
+  { icon: AlertTriangle, label: 'Critical Cases', tKey: 'hw.criticalCases', target: 3, decimals: 0, suffix: '', color: 'text-destructive' },
+  { icon: Clock, label: 'Avg Response Time', tKey: 'hw.avgResponse', target: 4.2, decimals: 1, suffix: ' min', color: 'text-soft-gold' },
+  { icon: TrendingUp, label: 'Resolved Today', tKey: 'hw.resolvedToday', target: 18, decimals: 0, suffix: '', color: 'text-healing-green' },
 ];
+
+// 2. Create a custom component to handle the number animation
+const AnimatedCounter = ({ target, decimals = 0, suffix = '' }) => {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (latest) => latest.toFixed(decimals) + suffix);
+
+  useEffect(() => {
+    // Animate from 0 to the target number over 2 seconds
+    const controls = animate(count, target, {
+      duration: 2,
+      ease: "easeOut"
+    });
+    return controls.stop; // Cleanup animation on unmount
+  }, [count, target]);
+
+  return <motion.span>{rounded}</motion.span>;
+};
 
 const HWDashboard = () => {
   const { t } = useLanguage();
@@ -17,7 +36,7 @@ const HWDashboard = () => {
       <h1 className="font-display text-2xl font-bold text-foreground">{t('sidebar.dashboard')}</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s, i) => (
+        {statsConfig.map((s, i) => (
           <motion.div
             key={s.label}
             initial={{ opacity: 0, y: 20 }}
@@ -26,7 +45,10 @@ const HWDashboard = () => {
             className="glass-card hover-lift p-5"
           >
             <s.icon className={`w-6 h-6 ${s.color} mb-2`} />
-            <p className="text-2xl font-bold text-foreground">{s.value}</p>
+            <p className="text-2xl font-bold text-foreground">
+              {/* 3. Insert the AnimatedCounter component here */}
+              <AnimatedCounter target={s.target} decimals={s.decimals} suffix={s.suffix} />
+            </p>
             <p className="text-xs text-muted-foreground">{t(s.tKey)}</p>
           </motion.div>
         ))}

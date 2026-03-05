@@ -12,10 +12,11 @@ export interface PatientProfile {
   password?: string; // Optional for guests
   createdAt: string;
   isGuest?: boolean; // Flag to identify guest sessions
+  role?: string;     // Added for session role verification
 }
 
 const PROFILE_KEY = 'manovaidya_patient_profile';
-const GUEST_KEY = 'manovaidya_guest_session';
+const GUEST_KEY = 'manovaidya_session'; // Unified with your UI code
 
 /**
  * Saves a registered patient profile to localStorage
@@ -32,22 +33,23 @@ export const savePatientProfile = (profile: PatientProfile): void => {
 export const getPatientProfile = (): PatientProfile | null => {
   if (typeof window === 'undefined') return null;
 
+  // 1. Check LocalStorage (Registered Patients)
   const storedProfile = localStorage.getItem(PROFILE_KEY);
   if (storedProfile) {
     try {
       return JSON.parse(storedProfile) as PatientProfile;
     } catch {
-      return null;
+      localStorage.removeItem(PROFILE_KEY);
     }
   }
 
-  // Fallback check for guest session in sessionStorage
+  // 2. Check SessionStorage (Guest sessions or fresh Logins)
   const storedGuest = sessionStorage.getItem("manovaidya_session");
   if (storedGuest) {
     try {
       return JSON.parse(storedGuest) as PatientProfile;
     } catch {
-      return null;
+      sessionStorage.removeItem("manovaidya_session");
     }
   }
 
@@ -76,7 +78,7 @@ export const startGuestSession = (): void => {
 export const clearPatientProfile = (): void => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(PROFILE_KEY);
-    sessionStorage.removeItem("manovaidya_session"); // Clear the session storage as well
+    sessionStorage.removeItem("manovaidya_session");
   }
 };
 
