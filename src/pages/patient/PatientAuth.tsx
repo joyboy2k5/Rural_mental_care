@@ -2,12 +2,12 @@ import { useState } from "react";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Heart, ChevronRight, ChevronLeft, Loader2, ArrowLeft, UserCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion"; 
+import { Heart, ChevronLeft, Loader2, ArrowLeft, Fingerprint } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguageSelector from "@/components/LanguageSelector";
-import { TELANGANA_DISTRICTS } from "@/lib/patientAuth";
-import { doc, setDoc, getDoc } from "firebase/firestore"; // Added getDoc
+import { TELANGANA_DISTRICTS, validateAbhaId } from "@/lib/patientAuth";
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 
 const containerVariant = {
     hidden: { opacity: 0, y: 20 },
@@ -23,14 +23,13 @@ export default function PatientAuth() {
     const [isLoading, setIsLoading] = useState(false);
     const [step, setStep] = useState(1);
 
-    // Sign In States
     const [signInEmail, setSignInEmail] = useState("");
     const [signInPassword, setSignInPassword] = useState("");
     const [signInError, setSignInError] = useState("");
 
-    // Sign Up States
     const [signUpName, setSignUpName] = useState("");
     const [signUpEmail, setSignUpEmail] = useState("");
+    const [signUpAbhaId, setSignUpAbhaId] = useState("");
     const [signUpAge, setSignUpAge] = useState<number | "">("");
     const [signUpGender, setSignUpGender] = useState<"male" | "female" | "other" | "">("");
     const [signUpDistrict, setSignUpDistrict] = useState("");
@@ -44,47 +43,105 @@ export default function PatientAuth() {
         ? TELANGANA_DISTRICTS[signUpDistrict]
         : [];
 
-    // --- Logic Handlers ---
-
-    const handleGuestLogin = () => {
-        const guestSession = {
-            role: "patient",
-            isGuest: true,
-            name: "Guest User",
-            loginTime: Date.now()
-        };
-        sessionStorage.setItem("manovaidya_session", JSON.stringify(guestSession));
-        navigate("/patient/triage");
+    // FIX: Modified to return the credential ID instead of writing to Firestore directly
+    const handleRegisterBiometric = async (userId: string) => {
+        if (!window.PublicKeyCredential) return null;
+        try {
+            const credential = await navigator.credentials.create({
+                publicKey: {
+                    challenge: crypto.getRandomValues(new Uint8Array(32)),
+                    rp: { name: "ManoVaidya" },
+                    user: {
+                        id: new TextEncoder().encode(userId),
+                        name: signUpEmail,
+                        displayName: signUpName
+                    },
+                    pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+                    authenticatorSelection: { authenticatorAttachment: "platform" }
+                }
+            }) as PublicKeyCredential;
+            
+            if (credential) {
+                // Safely convert rawId to base64
+                return btoa(Array.from(new Uint8Array(credential.rawId), c => String.fromCharCode(c)).join(''));
+            }
+        } catch (err) {
+            console.error("Biometric registration failed:", err);
+            return null; // Return null if user cancels or it fails, so they can still sign up
+        }
     };
 
-    const handleSignIn = async () => {
+    const handleBiometricSignIn = async () => {
         setSignInError("");
-        if (!signInEmail || !signInPassword) {
-            setSignInError("Please fill all fields");
+        if (!signInEmail) {
+            setSignInError("Please enter your email first to use fingerprint.");
             return;
         }
 
         try {
             setIsLoading(true);
-            const userCredential = await signInWithEmailAndPassword(auth, signInEmail, signInPassword);
+            const q = query(collection(db, "patients"), where("email", "==", signInEmail));
+            const querySnapshot = await getDocs(q);
 
-            // FETCH DATA FROM FIRESTORE (Added functionality)
+            if (querySnapshot.empty) {
+                setSignInError("No account found with this email.");
+                return;
+            }
+
+            const userDoc = querySnapshot.docs[0];
+            const storedBiometricId = userDoc.data().biometricId;
+
+            if (!storedBiometricId) {
+                setSignInError("Fingerprint is not registered for this account.");
+                return;
+            }
+
+            const assertion = await navigator.credentials.get({
+                publicKey: {
+                    challenge: crypto.getRandomValues(new Uint8Array(32)),
+                    allowCredentials: [{
+                        id: Uint8Array.from(atob(storedBiometricId), c => c.charCodeAt(0)),
+                        type: 'public-key'
+                    }],
+                    userVerification: "required"
+                }
+            });
+
+            if (assertion) {
+                sessionStorage.setItem("manovaidya_session", JSON.stringify({
+                    id: userDoc.id,
+                    ...userDoc.data(),
+                    role: "patient",
+                    loginTime: Date.now()
+                }));
+                navigate("/patient/triage"); // Successfully redirects to dashboard
+            }
+        } catch (err) {
+            setSignInError("Fingerprint verification failed or was cancelled.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSignIn = async () => {
+        setSignInError("");
+        if (!signInEmail || !signInPassword) return setSignInError("Please fill all fields");
+
+        try {
+            setIsLoading(true);
+            const userCredential = await signInWithEmailAndPassword(auth, signInEmail, signInPassword);
             const userDoc = await getDoc(doc(db, "patients", userCredential.user.uid));
 
             if (userDoc.exists()) {
-                const userData = userDoc.data();
-                const session = {
+                sessionStorage.setItem("manovaidya_session", JSON.stringify({
                     id: userCredential.user.uid,
-                    ...userData,
+                    ...userDoc.data(),
                     role: "patient",
                     loginTime: Date.now()
-                };
-                sessionStorage.setItem("manovaidya_session", JSON.stringify(session));
+                }));
                 navigate("/patient/triage");
-            } else {
-                setSignInError("User data not found. Please Sign Up.");
             }
-        } catch (err: any) {
+        } catch (err) {
             setSignInError("Invalid email or password");
         } finally {
             setIsLoading(false);
@@ -96,6 +153,7 @@ export default function PatientAuth() {
         if (step === 1) {
             if (signUpName.length < 2) return setSignUpError("Name too short");
             if (!signUpEmail.includes("@")) return setSignUpError("Enter valid email");
+            if (!validateAbhaId(signUpAbhaId)) return setSignUpError("Invalid ABHA ID (14 digits)");
             if (signUpAge === "" || signUpAge < 5 || signUpAge > 110) return setSignUpError("Invalid age");
             setStep(2);
         } else if (step === 2) {
@@ -105,33 +163,38 @@ export default function PatientAuth() {
     };
 
     const handleSignUpSubmit = async () => {
-        setSignUpError("");
         if (!signUpDistrict || !signUpVillage) return setSignUpError("Select district and village");
         if (signUpPassword !== signUpConfirmPassword) return setSignUpError("Passwords do not match");
 
         try {
             setIsLoading(true);
             const userCredential = await createUserWithEmailAndPassword(auth, signUpEmail, signUpPassword);
+            
+            // FIX: Wait for fingerprint registration and capture the ID
+            const biometricId = await handleRegisterBiometric(userCredential.user.uid);
+
             const patientData = {
                 name: signUpName,
                 email: signUpEmail,
+                abhaId: signUpAbhaId,
                 age: signUpAge,
                 gender: signUpGender,
                 district: signUpDistrict,
                 village: signUpVillage,
                 language: language,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                ...(biometricId && { biometricId }) // Safely include biometricId only if registration succeeded
             };
 
+            // FIX: Create the document ONCE with all data including the fingerprint ID
             await setDoc(doc(db, "patients", userCredential.user.uid), patientData);
-
-            // UPDATE SESSION STORAGE (Added functionality)
+            
             sessionStorage.setItem("manovaidya_session", JSON.stringify({
                 id: userCredential.user.uid,
                 ...patientData,
                 role: "patient"
             }));
-
+            
             navigate("/patient/triage");
         } catch (error: any) {
             setSignUpError(error.message);
@@ -143,32 +206,14 @@ export default function PatientAuth() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
             <div className="w-full max-w-md space-y-4">
-                <button
-                    onClick={() => navigate("/")}
-                    className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm mb-2"
-                >
+                <button onClick={() => navigate("/")} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm mb-2">
                     <ArrowLeft size={16} /> Back to Home
                 </button>
 
                 <div className="glass-card p-6">
-                    <div className="flex items-center gap-2 mb-6">
-                        <Heart className="text-primary" />
-                        <h1 className="font-bold text-lg">ManoVaidya</h1>
-                    </div>
-
                     <div className="flex border-b mb-6">
-                        <button
-                            className={`flex-1 py-3 transition-colors ${mode === "signin" ? "border-b-2 border-primary font-semibold" : "text-muted-foreground"}`}
-                            onClick={() => setMode("signin")}
-                        >
-                            Sign In
-                        </button>
-                        <button
-                            className={`flex-1 py-3 transition-colors ${mode === "signup" ? "border-b-2 border-primary font-semibold" : "text-muted-foreground"}`}
-                            onClick={() => setMode("signup")}
-                        >
-                            Sign Up
-                        </button>
+                        <button className={`flex-1 py-3 transition-colors ${mode === "signin" ? "border-b-2 border-primary font-semibold" : "text-muted-foreground"}`} onClick={() => setMode("signin")}>Sign In</button>
+                        <button className={`flex-1 py-3 transition-colors ${mode === "signup" ? "border-b-2 border-primary font-semibold" : "text-muted-foreground"}`} onClick={() => setMode("signup")}>Sign Up</button>
                     </div>
 
                     <AnimatePresence mode="wait">
@@ -177,8 +222,16 @@ export default function PatientAuth() {
                                 <input placeholder="Email" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} className="input" />
                                 <input type="password" placeholder="Password" value={signInPassword} onChange={(e) => setSignInPassword(e.target.value)} className="input" />
                                 {signInError && <p className="text-red-500 text-xs">{signInError}</p>}
-                                <button onClick={handleSignIn} disabled={isLoading} className="btn-primary w-full">
-                                    {isLoading ? <Loader2 className="animate-spin mx-auto" /> : "Sign In"}
+                                <button onClick={handleSignIn} disabled={isLoading} className="btn-primary w-full">{isLoading ? <Loader2 className="animate-spin mx-auto" /> : "Sign In"}</button>
+                                
+                                <div className="relative py-2">
+                                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border"></span></div>
+                                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div>
+                                </div>
+                                
+                                {/* Fingerprint Button */}
+                                <button onClick={handleBiometricSignIn} disabled={isLoading} className="w-full flex items-center justify-center gap-2 p-2 border border-primary/20 rounded-lg hover:bg-primary/5 text-primary text-sm font-medium transition-all">
+                                    {isLoading ? <Loader2 className="animate-spin mx-auto" /> : <><Fingerprint size={18} /> Use Fingerprint Scanner</>}
                                 </button>
                             </motion.div>
                         ) : (
@@ -187,11 +240,12 @@ export default function PatientAuth() {
                                     <div className="space-y-4">
                                         <input placeholder="Full Name" value={signUpName} onChange={(e) => setSignUpName(e.target.value)} className="input" />
                                         <input placeholder="Email" value={signUpEmail} onChange={(e) => setSignUpEmail(e.target.value)} className="input" />
+                                        <input placeholder="ABHA ID (14 digits)" value={signUpAbhaId} onChange={(e) => setSignUpAbhaId(e.target.value)} className="input" />
                                         <LanguageSelector />
                                         <input type="number" placeholder="Age" value={signUpAge} onChange={(e) => setSignUpAge(e.target.value === "" ? "" : Number(e.target.value))} className="input" />
                                     </div>
                                 )}
-
+                                
                                 {step === 2 && (
                                     <div className="space-y-3">
                                         {["male", "female", "other"].map((g) => (
@@ -204,11 +258,11 @@ export default function PatientAuth() {
 
                                 {step === 3 && (
                                     <div className="space-y-4">
-                                        <select value={signUpDistrict} onChange={(e) => setSignUpDistrict(e.target.value)} className="input">
+                                        <select value={signUpDistrict} onChange={(e) => { setSignUpDistrict(e.target.value); setSignUpVillage(""); }} className="input">
                                             <option value="">Select district</option>
                                             {sortedDistricts.map((d) => <option key={d} value={d}>{d}</option>)}
                                         </select>
-                                        <select value={signUpVillage} onChange={(e) => setSignUpVillage(e.target.value)} className="input">
+                                        <select value={signUpVillage} onChange={(e) => setSignUpVillage(e.target.value)} className="input" disabled={!signUpDistrict}>
                                             <option value="">Select village</option>
                                             {currentVillages.map((v) => <option key={v} value={v}>{v}</option>)}
                                         </select>
@@ -221,37 +275,13 @@ export default function PatientAuth() {
 
                                 <div className="flex gap-3">
                                     {step > 1 && <button onClick={() => setStep(step - 1)} className="btn-outline"><ChevronLeft /></button>}
-                                    {step < 3 ? (
-                                        <button onClick={handleSignUpNext} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                                            Next <ChevronRight className="w-4 h-4" />
-                                        </button>
-                                    ) : (
-                                        <button onClick={handleSignUpSubmit} disabled={isLoading} className="btn-primary flex-1">
-                                            {isLoading ? <Loader2 className="animate-spin mx-auto" /> : "Create Account"}
-                                        </button>
-                                    )}
+                                    <button onClick={step < 3 ? handleSignUpNext : handleSignUpSubmit} disabled={isLoading} className="btn-primary flex-1">
+                                        {isLoading ? <Loader2 className="animate-spin mx-auto" /> : step < 3 ? "Next" : "Scan Fingerprint & Register"}
+                                    </button>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
-
-                    <div className="mt-8 pt-6 border-t border-dashed border-border">
-                        <div className="relative mb-6">
-                            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-muted/30"></span></div>
-                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div>
-                        </div>
-
-                        <button
-                            onClick={handleGuestLogin}
-                            className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all text-primary font-medium"
-                        >
-                            <UserCircle size={18} />
-                            Continue as Guest
-                        </button>
-                        <p className="text-[10px] text-center text-muted-foreground mt-2">
-                            Guest progress may not be saved across sessions.
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>

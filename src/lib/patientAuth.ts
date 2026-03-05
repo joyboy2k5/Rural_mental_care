@@ -4,36 +4,38 @@ export interface PatientProfile {
   id: string;
   name: string;
   email: string;
-  language: Language;
+  abhaId: string;
+  language: Language | string;
   age: number;
   gender: 'male' | 'female' | 'other';
   district: string;
   village: string;
-  password?: string; // Optional for guests
+  password?: string; 
   createdAt: string;
-  isGuest?: boolean; // Flag to identify guest sessions
-  role?: string;     // Added for session role verification
+  isGuest?: boolean; 
+  role?: string;     
+  biometricId?: string; // This property correctly holds the fingerprint credential
 }
 
 const PROFILE_KEY = 'manovaidya_patient_profile';
-const GUEST_KEY = 'manovaidya_session'; // Unified with your UI code
 
 /**
- * Saves a registered patient profile to localStorage
+ * Validates ABHA ID (Standard 14-digit format)
  */
+export const validateAbhaId = (id: string): boolean => {
+  const abhaRegex = /^[0-9]{14}$/;
+  return abhaRegex.test(id);
+};
+
 export const savePatientProfile = (profile: PatientProfile): void => {
   if (typeof window !== 'undefined') {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
   }
 };
 
-/**
- * Retrieves the stored patient profile or guest session
- */
 export const getPatientProfile = (): PatientProfile | null => {
   if (typeof window === 'undefined') return null;
 
-  // 1. Check LocalStorage (Registered Patients)
   const storedProfile = localStorage.getItem(PROFILE_KEY);
   if (storedProfile) {
     try {
@@ -43,38 +45,17 @@ export const getPatientProfile = (): PatientProfile | null => {
     }
   }
 
-  // 2. Check SessionStorage (Guest sessions or fresh Logins)
   const storedGuest = sessionStorage.getItem("manovaidya_session");
   if (storedGuest) {
     try {
       return JSON.parse(storedGuest) as PatientProfile;
     } catch {
-      sessionStorage.removeItem("manovaidya_session");
+      return null;
     }
   }
-
   return null;
 };
 
-/**
- * Creates a temporary guest session
- */
-export const startGuestSession = (): void => {
-  if (typeof window !== 'undefined') {
-    const guestData = {
-      role: "patient",
-      isGuest: true,
-      loginTime: Date.now(),
-      name: "Guest User",
-      createdAt: new Date().toISOString()
-    };
-    sessionStorage.setItem("manovaidya_session", JSON.stringify(guestData));
-  }
-};
-
-/**
- * Clears all authentication data
- */
 export const clearPatientProfile = (): void => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(PROFILE_KEY);
@@ -82,23 +63,9 @@ export const clearPatientProfile = (): void => {
   }
 };
 
-/**
- * Checks if a user is logged in (either as a registered patient or guest)
- */
 export const isPatientLoggedIn = (): boolean => {
   return getPatientProfile() !== null;
 };
-
-/**
- * Validates password for registered users
- */
-export const validatePassword = (inputPassword: string): boolean => {
-  const profile = getPatientProfile();
-  if (!profile || profile.isGuest) return false;
-  return profile.password === inputPassword;
-};
-
-/* ---------------- TELANGANA DISTRICTS ---------------- */
 
 export const TELANGANA_DISTRICTS: Record<string, string[]> = {
   "Adilabad": ["Adilabad", "Boath", "Utnoor", "Ichoda", "Jainad"],
